@@ -13,28 +13,31 @@
 </head>
 <body class="bg-slate-50 min-h-screen pb-10">
     <script>
-        // 設定 Supabase 連線
+        // 設定 Supabase 連線 (請記得檢查網址和 KEY)
         const SUPABASE_URL = 'https://joeicjgjcmnmikytjoae.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_aRUZmCufrG1kfQS6OTvfDg_WA81QzBE'; 
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // 讀取資料
         async function fetchBooks() {
-            const { data, error } = await supabase
+            const { data, error } = await _supabase
                 .from('books')
                 .select('*')
                 .order('created_at', { ascending: false });
-            
             if (error) console.error(error);
             else renderBooks(data);
         }
 
-        // 渲染列表
         function renderBooks(books) {
             const list = document.getElementById('book-list');
             list.innerHTML = books.map(book => `
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-3">
-                    <h3 class="font-bold text-lg text-slate-800">${book.title}</h3>
+                    <div class="flex justify-between items-start">
+                        <h3 class="font-bold text-lg text-slate-800">${book.title}</h3>
+                        <div class="flex gap-2">
+                            ${book.is_read ? '<span class="bg-green-100 text-green-600 text-xs px-2 py-1 rounded">已看完</span>' : '<span class="bg-slate-100 text-slate-400 text-xs px-2 py-1 rounded">未看</span>'}
+                            ${book.is_registered ? '<span class="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded">已登記</span>' : ''}
+                        </div>
+                    </div>
                     <div class="grid grid-cols-2 gap-2 text-sm text-slate-500 mt-2">
                         <div>✍️ 作者：${book.author || '未填'}</div>
                         <div>🏢 出版：${book.publisher || '未填'}</div>
@@ -45,7 +48,6 @@
             `).join('');
         }
 
-        // 新增資料
         async function addBook() {
             const btn = document.getElementById('save-btn');
             btn.disabled = true;
@@ -55,20 +57,22 @@
             const author = document.getElementById('author').value;
             const publisher = document.getElementById('publisher').value;
             const pages = document.getElementById('pages').value;
+            const is_read = document.getElementById('is_read').checked;
+            const is_registered = document.getElementById('is_registered').checked;
 
-            if (!title) { alert('請輸入書名'); btn.disabled = false; return; }
+            if (!title) { alert('請輸入書名'); btn.disabled = false; btn.innerText = '儲存紀錄'; return; }
 
-            const { error } = await supabase.from('books').insert([
-                { title, author, publisher, pages: parseInt(pages) || 0 }
+            const { error } = await _supabase.from('books').insert([
+                { title, author, publisher, pages: parseInt(pages) || 0, is_read, is_registered }
             ]);
 
             if (error) {
                 alert('儲存失敗');
             } else {
+                // 清空輸入框
                 document.getElementById('title').value = '';
-                document.getElementById('author').value = '';
-                document.getElementById('publisher').value = '';
-                document.getElementById('pages').value = '';
+                document.getElementById('is_read').checked = false;
+                document.getElementById('is_registered').checked = false;
                 fetchBooks();
             }
             btn.disabled = false;
@@ -85,12 +89,22 @@
 
         <div class="bg-white p-5 rounded-2xl shadow-md mb-8 border-t-4 border-blue-400">
             <div class="space-y-4">
-                <input id="title" type="text" placeholder="書名 (必填)" class="w-full border p-3 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400">
-                <input id="author" type="text" placeholder="作者" class="w-full border p-3 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <input id="title" type="text" placeholder="書名 (必填)" class="w-full border p-3 rounded-lg bg-slate-50">
+                <input id="author" type="text" placeholder="作者" class="w-full border p-3 rounded-lg bg-slate-50">
                 <div class="flex gap-2">
-                    <input id="publisher" type="text" placeholder="出版社" class="flex-1 border p-3 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400">
-                    <input id="pages" type="number" placeholder="頁數" class="w-24 border p-3 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    <input id="publisher" type="text" placeholder="出版社" class="flex-1 border p-3 rounded-lg bg-slate-50">
+                    <input id="pages" type="number" placeholder="頁數" class="w-24 border p-3 rounded-lg bg-slate-50">
                 </div>
+                
+                <div class="flex gap-4 p-2 bg-slate-50 rounded-lg border border-dashed border-slate-300">
+                    <label class="flex items-center gap-2 cursor-pointer text-slate-600 text-sm">
+                        <input id="is_read" type="checkbox" class="w-5 h-5 rounded text-blue-500"> 安安看完了
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer text-slate-600 text-sm">
+                        <input id="is_registered" type="checkbox" class="w-5 h-5 rounded text-blue-500"> 已向圖書館登記
+                    </label>
+                </div>
+
                 <button id="save-btn" onclick="addBook()" class="w-full bg-blue-500 text-white py-3 rounded-lg font-bold shadow-lg active:scale-95 transition-all">儲存紀錄</button>
             </div>
         </div>
