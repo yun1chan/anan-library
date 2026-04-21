@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>安安的借書紀錄</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen pb-10">
+    <script>
+        // 設定 Supabase 連線
+        const SUPABASE_URL = 'https://joeicjgjcmnmikytjoae.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_aRUZmCufrG1kfQS6OTvfDg_WA81QzBE'; 
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 讀取資料
+        async function fetchBooks() {
+            const { data, error } = await supabase
+                .from('books')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (error) console.error(error);
+            else renderBooks(data);
+        }
+
+        // 渲染列表
+        function renderBooks(books) {
+            const list = document.getElementById('book-list');
+            list.innerHTML = books.map(book => `
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-3">
+                    <h3 class="font-bold text-lg text-slate-800">${book.title}</h3>
+                    <div class="grid grid-cols-2 gap-2 text-sm text-slate-500 mt-2">
+                        <div>✍️ 作者：${book.author || '未填'}</div>
+                        <div>🏢 出版：${book.publisher || '未填'}</div>
+                        <div>📄 頁數：${book.pages || '0'} 頁</div>
+                        <div>📅 日期：${new Date(book.created_at).toLocaleDateString()}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 新增資料
+        async function addBook() {
+            const btn = document.getElementById('save-btn');
+            btn.disabled = true;
+            btn.innerText = '儲存中...';
+
+            const title = document.getElementById('title').value;
+            const author = document.getElementById('author').value;
+            const publisher = document.getElementById('publisher').value;
+            const pages = document.getElementById('pages').value;
+
+            if (!title) { alert('請輸入書名'); btn.disabled = false; return; }
+
+            const { error } = await supabase.from('books').insert([
+                { title, author, publisher, pages: parseInt(pages) || 0 }
+            ]);
+
+            if (error) {
+                alert('儲存失敗');
+            } else {
+                document.getElementById('title').value = '';
+                document.getElementById('author').value = '';
+                document.getElementById('publisher').value = '';
+                document.getElementById('pages').value = '';
+                fetchBooks();
+            }
+            btn.disabled = false;
+            btn.innerText = '儲存紀錄';
+        }
+
+        window.onload = fetchBooks;
+    </script>
+
+    <div class="max-w-md mx-auto p-4">
+        <header class="py-6 text-center">
+            <h1 class="text-2xl font-bold text-slate-700">📚 安安的借書紀錄</h1>
+        </header>
+
+        <div class="bg-white p-5 rounded-2xl shadow-md mb-8 border-t-4 border-blue-400">
+            <div class="space-y-4">
+                <input id="title" type="text" placeholder="書名 (必填)" class="w-full border p-3 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <input id="author" type="text" placeholder="作者" class="w-full border p-3 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <div class="flex gap-2">
+                    <input id="publisher" type="text" placeholder="出版社" class="flex-1 border p-3 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    <input id="pages" type="number" placeholder="頁數" class="w-24 border p-3 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                </div>
+                <button id="save-btn" onclick="addBook()" class="w-full bg-blue-500 text-white py-3 rounded-lg font-bold shadow-lg active:scale-95 transition-all">儲存紀錄</button>
+            </div>
+        </div>
+
+        <h2 class="text-lg font-bold text-slate-600 mb-4 ml-1">最近借閱</h2>
+        <div id="book-list">
+            <div class="text-center py-10 text-slate-400 italic">載入中...</div>
+        </div>
+    </div>
+</body>
+</html>
