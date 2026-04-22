@@ -70,6 +70,7 @@
             const { error } = await _supabase.from('books').insert([{ title, author, publisher, pages: parseInt(pages) || 0, is_read, is_registered }]);
 
             if (!error) {
+                document.getElementById('title').value = '';
                 document.getElementById('author').value = '';     // 
                 document.getElementById('publisher').value = '';  // 
                 document.getElementById('pages').value = '';      // 
